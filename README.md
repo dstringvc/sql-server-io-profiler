@@ -6,7 +6,7 @@ It also captures OS-level disk counters (via PerfMon) alongside the SQL-level nu
 
 ## Why this exists
 
-Before resizing or migrating a SQL Server instance, it helps to know your actual peak IOPS and throughput — not an estimate. This script answers that by sampling SQL Server's own I/O counters at an interval you control (e.g. every 5 minutes) over a representative window (a week is a reasonable default), then lets you sort the results to find real peaks.
+Before resizing or migrating a SQL Server instance, it helps to know your actual peak IOPS and throughput — not an estimate. This script answers that by sampling SQL Server's own I/O counters at an interval you control (e.g. every 5 minutes) over a representative window (a week is a reasonable default), then lets you sort the results to find real peaks. If you're working with an on-prem server, this may not be useful. But in my case, I needed to provision a new AWS EC2 instance to host SQL Server 2025. I wanted to make sure the provisioned IOPS for the EBS volumes would be sufficient to support anticipated production levels. I had no baseline data, so I created this script.
 
 ## How it works
 
@@ -72,12 +72,12 @@ Let it run for a representative period — a week is a reasonable default — be
 
 All files are written to `$OutputFolder` (default `C:\SqlIoProfiling`):
 
-| File | Contents |
-|---|---|
-| `SqlIoStats.csv` | One row per database file per run: `Timestamp`, `DatabaseName`, `PhysicalName`, `FileType`, `ElapsedSeconds`, `ReadIOPS`, `WriteIOPS`, `TotalIOPS`, `ThroughputMBps`, `AvgReadLatencyMs`, `AvgWriteLatencyMs` |
-| `DiskCounters.csv` | One row per logical disk per run: `Timestamp`, `Disk`, `ReadIOPS`, `WriteIOPS`, `ReadThroughputMBps`, `WriteThroughputMBps`, `AvgDiskSecPerRead`, `AvgDiskSecPerWrite`, `CurrentDiskQueueLength` |
-| `ProfileRun.log` | One line per execution: connects, errors, and row counts written |
-| `SqlIoState.xml` | Internal — the previous snapshot, used to compute the next delta. Don't edit or delete mid-run. |
+| File               | Contents                                                                                                                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SqlIoStats.csv`   | One row per database file per run: `Timestamp`, `DatabaseName`, `PhysicalName`, `FileType`, `ElapsedSeconds`, `ReadIOPS`, `WriteIOPS`, `TotalIOPS`, `ThroughputMBps`, `AvgReadLatencyMs`, `AvgWriteLatencyMs` |
+| `DiskCounters.csv` | One row per logical disk per run: `Timestamp`, `Disk`, `ReadIOPS`, `WriteIOPS`, `ReadThroughputMBps`, `WriteThroughputMBps`, `AvgDiskSecPerRead`, `AvgDiskSecPerWrite`, `CurrentDiskQueueLength`              |
+| `ProfileRun.log`   | One line per execution: connects, errors, and row counts written                                                                                                                                              |
+| `SqlIoState.xml`   | Internal — the previous snapshot, used to compute the next delta. Don't edit or delete mid-run.                                                                                                               |
 
 To find your real peaks, sort `SqlIoStats.csv` by `TotalIOPS` and `ThroughputMBps` descending. `ElapsedSeconds` should stay close to your scheduled interval (e.g. ~300 for a 5-minute schedule) once Task Scheduler is running it on its own; large or inconsistent gaps usually mean missed triggers rather than a script problem.
 
